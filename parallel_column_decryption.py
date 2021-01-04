@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-import cx_Oracle, time, os, logging, random, sys
+import cx_Oracle, time, os, logging, random
 import multiprocessing as mp
 import datetime
 from concurrent.futures import ProcessPoolExecutor as PoolExecutor
@@ -31,10 +31,11 @@ def encrypt_proc(args):
    cur.close()
    con.close()
    total_time = datetime.datetime.now() - begin_time
+   logging.info('Finished Execution of ' + sql_text)
    if total_time.seconds > 0:
-     logging.info('Finished Decryption of \'' + sql_text + '\' in ' + str(total_time.seconds) + ' seconds')
+     logging.info('    Completed Encryption in ' + str(total_time.seconds) + ' seconds')
    else:
-     logging.info('Finished Decryption of \'' + sql_text + '\' in ' + str(total_time.microseconds) + ' microsecond')
+     logging.info('    Completed Encryption in ' + str(total_time.microseconds / 1000) + ' milliseconds')
    return
 
 if __name__ == '__main__':
@@ -44,18 +45,6 @@ if __name__ == '__main__':
   pdb_name = pdb_name.upper()
   num_threads = int(raw_input("Enter the number of threads you want to execute: "))
   num_threads = min(num_threads, mp.cpu_count())
-
-  logpath = os.path.dirname(os.path.realpath(__file__)) + '/log'
-  if not os.path.isdir(logpath):
-    print ('Log directory does not exist - creating directory: ' + logpath)
-    try:
-      os.mkdir(logpath)
-    except OSError:
-      print ("Creation of the directory %s failed" % logpath)
-      sys.exit()
-    else:
-      print ("Successfully created the directory %s " % logpath)
-
   logging.basicConfig(filename='./log/' + pdb_name + '_column_decryption_' + log_date + '.log', level=logging.INFO, format='%(asctime)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
   logging.info('Script for ' + pdb_name + ' began')
   logging.info('Executing ' + str(num_threads) + ' threads')
@@ -79,14 +68,14 @@ if __name__ == '__main__':
   logging.info('Starting Parallel Worker Threads.....')
 
   print(str(len(encrypted_column_result)) + ' Columns to Decrypt')
-  remaining_columns_to_decrypt = len(encrypted_column_result)
+  total_columns_remaining = len(encrypted_column_result)
   logging.info(str(len(encrypted_column_result)) + ' Columns to Decrypt')
 
   with PoolExecutor(max_workers=num_threads) as executor:
     for _ in executor.map(encrypt_proc, encrypted_column_result):
+      total_columns_remaining = total_columns_remaining - 1
+      print('Columns remaining to decrypt: ' + str(total_columns_remaining))
       pass
-      remaining_columns_to_decrypt = remaining_columns_to_decrypt - 1
-      print('Columns remaining to decrypt: ' + str(remaining_columns_to_decrypt))
 
   logging.info('Script for ' + pdb_name + ' completed')
   print('Script for ' + pdb_name + ' completed')
